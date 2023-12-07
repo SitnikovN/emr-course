@@ -5,10 +5,10 @@ terraform {
   ## TO SWITCH FROM LOCAL BACKEND TO REMOTE AWS BACKEND
   #############################################################
 #   backend "s3" {
-#     bucket         = "terraform-tf-state-764717859735"
+#     bucket         = "terraform-tf-state-{YOUR_AWS_ACCOUNT}"
 #     key            = "../terraform.tfstate"
 #     region         = "eu-central-1"
-#     dynamodb_table = "terraform-state-locking-764717859735"
+#     dynamodb_table = "terraform-state-locking-{YOUR_AWS_ACCOUNT}"
 #     encrypt        = true
 #   }
 
@@ -72,10 +72,11 @@ module "emr-cluster-module" {
   bucket_name  =  "emr-course-tf-${local.account_id}"
   raw_prefix = local.raw_prefix
   tgt_prefix = local.tgt_prefix
-  emr_key_name = "emr-course-key"
-  emr_subnet_id = "subnet-0920d87b86fe58ffc"
+  # put missing values
+  emr_key_name = ""
+  emr_subnet_id = ""
+  eip_allocation_id = ""
   spark_app_bucket_name = "spark-app-tf-${local.account_id}"
-  eip_allocation_id = "eipalloc-0da792306cb21fa20"
   region_name = data.aws_region.current_region.name
   account_id = local.account_id
 }
@@ -92,10 +93,4 @@ module "step-function-module" {
   account_id = local.account_id
 }
 
-
-#terraform destroy --target module.step-function-module
-#{
-#  "Bucket": "emr-course-tf-764717859735",
-#  "SourcePrefix": "landing/2021-01-13"
-#}
 
