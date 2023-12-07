@@ -67,30 +67,30 @@ resource "aws_dynamodb_table" "terraform_locks" {
   }
 }
 #
-module "emr-cluster-module" {
-  source = "./emr-cluster-setup-module"
-  bucket_name  =  "emr-course-tf-${local.account_id}"
-  raw_prefix = local.raw_prefix
-  tgt_prefix = local.tgt_prefix
-  # put missing values
-  emr_key_name = ""
-  emr_subnet_id = ""
-  eip_allocation_id = ""
-  spark_app_bucket_name = "spark-app-tf-${local.account_id}"
-  region_name = data.aws_region.current_region.name
-  account_id = local.account_id
-}
+#module "emr-cluster-module" {
+#  source = "./emr-cluster-setup-module"
+#  bucket_name  =  "emr-course-tf-${local.account_id}"
+#  raw_prefix = local.raw_prefix
+#  tgt_prefix = local.tgt_prefix
+#  # put missing values
+#  emr_key_name = ""
+#  emr_subnet_id = ""
+#  eip_allocation_id = ""
+#  spark_app_bucket_name = "spark-app-tf-${local.account_id}"
+#  region_name = data.aws_region.current_region.name
+#  account_id = local.account_id
+#}
 
-module "step-function-module" {
-  source = "./step-function-module"
-  step_function_name = "emr-spark-step-function-tf-${local.account_id}"
-  bucket_arn = module.emr-cluster-module.bucket_arn
-  bucket_name = module.emr-cluster-module.bucket_name
-  spark_app_bucket_name = module.emr-cluster-module.spark_app_bucket_name
-  tgt_prefix = local.tgt_prefix
-  raw_prefix = local.raw_prefix
-  region_name = data.aws_region.current_region.name
-  account_id = local.account_id
-}
+#module "step-function-module" {
+#  source = "./step-function-module"
+#  step_function_name = "emr-spark-step-function-tf-${local.account_id}"
+#  bucket_arn = module.emr-cluster-module.bucket_arn
+#  bucket_name = module.emr-cluster-module.bucket_name
+#  spark_app_bucket_name = module.emr-cluster-module.spark_app_bucket_name
+#  tgt_prefix = local.tgt_prefix
+#  raw_prefix = local.raw_prefix
+#  region_name = data.aws_region.current_region.name
+#  account_id = local.account_id
+#}
 
 
