@@ -1,0 +1,151 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Check S3 Source Location",
+  "States": {
+    "Check S3 Source Location": {
+      "Type": "Task",
+      "Next": "IsSourcePresent",
+      "Parameters": {
+        "Bucket.$": "$.Bucket",
+        "Prefix.$": "$.SourcePrefix"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:s3:listObjectsV2",
+      "ResultPath": "$.SourceObjects"
+    },
+    "IsSourcePresent": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.SourceObjects.Contents",
+          "IsPresent": true,
+          "Next": "Check Source Count"
+        },
+        {
+          "Not": {
+            "Variable": "$.SourceObjects.Contents",
+            "IsPresent": true
+          },
+          "Next": "Pass"
+        }
+      ],
+      "Default": "Pass"
+    },
+    "Check Source Count": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${daily_checker_lambda}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "IsReady",
+      "ResultPath": "$.IsReady"
+    },
+    "IsReady": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.IsReady.Payload",
+          "BooleanEquals": true,
+          "Next": "Flush TGT folder"
+        },
+        {
+          "Variable": "$.IsReady.Payload",
+          "BooleanEquals": false,
+          "Next": "Pass"
+        }
+      ],
+      "Default": "Pass"
+    },
+    "Pass": {
+      "Type": "Pass",
+      "End": true
+    },
+    "Flush TGT folder": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${clear_tgt_folder_lambda}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Get PROD cluster"
+    },
+    "Get PROD cluster": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "Payload": "{\"dummy_key\": \"dummy_value\"}",
+        "FunctionName": "${get_cluster_running_lambda}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "EMR AddStep"
+    },
+    "EMR AddStep": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::elasticmapreduce:addStep",
+      "Parameters": {
+        "ClusterId.$": "$.cluster_id",
+        "Step": {
+          "Name": "TransformDataWithSpark",
+          "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+              "spark-submit",
+              "--deploy-mode",
+              "cluster",
+              "--conf",
+              "spark.yarn.appMasterEnv.ENV=PROD",
+              "--conf",
+              "spark.yarn.appMasterEnv.TGT_DIR=s3://${data_bucket_name}/${tgt_prefix}",
+              "--conf",
+              "spark.yarn.appMasterEnv.SRC_DIR=s3://${data_bucket_name}/${src_prefix}",
+              "--py-files",
+              "s3://${spark_app_bucket}/emr-spark.zip",
+              "s3://${spark_app_bucket}/app.py"
+            ]
+          }
+        }
+      },
+      "End": true
+    }
+  }
+}
