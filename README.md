@@ -15,7 +15,7 @@ Course link:  https://www.udemy.com/course/mastering-aws-elastic-map-reduce-for-
 
 1. Create a new directory, navigate to that directory in a terminal and clone the GitHub repository:
     ``` 
-    git clone https://github.com/aws-samples/step-functions-workflows-collection
+    git clone https://github.com/SitnikovN/emr-course.git 
     ```
 1. From the command line, initialize Terraform project with local backend, creating state bucket and DynamoDb table:
     ```
